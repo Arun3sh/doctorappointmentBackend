@@ -140,11 +140,11 @@ router.put('/reschedule-appointment/:id', async (request, response) => {
 });
 
 // To update status of Appointment
-router.put('/update-appointment-status/:id', async (request, response) => {
+router.put('/update-appointment-status/:id', auth, async (request, response) => {
 	const status = request.body;
 	const { id } = request.params;
 
-	const updateStatus = await updateAppointmentStatus(id, status[0]);
+	const updateStatus = await updateAppointmentStatus(id, status);
 
 	response.send(updateStatus);
 });
