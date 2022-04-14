@@ -85,7 +85,12 @@ async function updateAppointmentSummary(id, data) {
 		.collection('patient')
 		.updateOne(
 			{ _id: ObjectId(id), appointments: { $elemMatch: { date: data.date } } },
-			{ $set: { 'appointments.$[outer].discharge_summary': data.summary } },
+			{
+				$set: {
+					'appointments.$[outer].discharge_summary': data.summary,
+					'appointments.$[outer].prescription': data.prescription,
+				},
+			},
 			{ arrayFilters: [{ 'outer.date': data.date }] }
 		);
 }

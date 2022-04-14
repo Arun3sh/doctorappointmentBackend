@@ -19,6 +19,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { client } from '../index.js';
 import { admin_auth } from './admin_auth.js';
+import { auth } from './auth.js';
 
 const router = express.Router();
 
@@ -157,7 +158,7 @@ router.get('/appointments/:id', async (request, response) => {
 	response.send(result);
 });
 
-// To update appointment status on both user and doctor's end
+// To update appointment status on both user and doctor from doctor's end
 router.put('/update-appointment-status/:id', async (request, response) => {
 	const data = request.body;
 	const { id } = request.params;
@@ -170,8 +171,8 @@ router.put('/update-appointment-status/:id', async (request, response) => {
 	response.send(result);
 });
 
-// To update patient summary on both user and doctor's end
-router.put('/update-appointment-summary/:id', async (request, response) => {
+// To update patient summary on both user and doctor from doctor's end
+router.put('/update-appointment-summary/:id', auth, async (request, response) => {
 	const data = request.body;
 	const { id } = request.params;
 
@@ -185,7 +186,7 @@ router.put('/update-appointment-summary/:id', async (request, response) => {
 	response.send(result);
 });
 
-// To update patient summary on both user and doctor's end
+// To update patient summary on both user and doctor from doctor's end
 router.put('/update-appointment-prescription/:id', async (request, response) => {
 	const data = request.body;
 	const { id } = request.params;
