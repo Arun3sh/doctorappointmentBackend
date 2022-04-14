@@ -3,6 +3,7 @@ import { MongoClient } from 'mongodb';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import { patientRouter } from './routes/patient.js';
+import { doctorRouter } from './routes/doctor.js';
 
 dotenv.config();
 const app = express();
@@ -27,5 +28,7 @@ app.get('/', (request, response) => {
 });
 
 app.use('/patient', patientRouter);
+
+app.use('/doctor', doctorRouter);
 
 app.listen(PORT, () => console.log('Server started', PORT));
