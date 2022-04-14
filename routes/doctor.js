@@ -1,5 +1,6 @@
 import express, { request, response } from 'express';
 import {
+	genPassword,
 	updateAppointmentPrescription,
 	updateAppointmentStatus,
 	updateAppointmentSummary,
@@ -9,10 +10,15 @@ import {
 	getAllDoctor,
 	getAppointments,
 	createDoctor,
+	createAdmin,
 	updateAppointmentsStatus,
 	updateAppointmentsSummary,
 	updateAppointmentsPrescription,
 } from './../doctor_helper.js';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import { client } from '../index.js';
+import { admin_auth } from './admin_auth.js';
 
 const router = express.Router();
 
@@ -29,11 +35,115 @@ router.get('/', async (request, response) => {
 	response.send(result);
 });
 
-// To create new doctor by admin
-router.post('/create-doctor', async (request, response) => {
-	const data = request.body;
+// For doctor login
+router.post('/login-doctor', async (request, response) => {
+	const { email, password } = request.body;
 
-	const result = await createDoctor(data);
+	// To check if user exists
+	const check = await client
+		.db('healthcare')
+		.collection('doctor')
+		.findOne({ email: email }, { projection: { _id: 1, name: 1, email: 1, password: 1 } });
+
+	if (check === null) {
+		response.status(401).send('Email / Password incorrect');
+		return;
+	}
+
+	// To check the hashed password
+	const checkPassword = await bcrypt.compare(password, check.password);
+
+	// If password is correct create a token
+	if (checkPassword) {
+		const token = jwt.sign({ id: check._id }, process.env.SECRET_KEY);
+
+		response.header('x-auth-token', token).send({ token: token, id: check._id });
+	} else {
+		response.status(401).send('Email/Password incorrect');
+		return;
+	}
+});
+
+// For Admin login
+router.post('/login-admin', async (request, response) => {
+	const { email, password } = request.body;
+
+	// To check if user exists
+	const check = await client
+		.db('healthcare')
+		.collection('admin')
+		.findOne({ email: email }, { projection: { _id: 1, email: 1, password: 1 } });
+
+	if (check === null) {
+		response.status(401).send('Email / Password incorrect');
+		return;
+	}
+
+	// To check the hashed password
+	const checkPassword = await bcrypt.compare(password, check.password);
+
+	// If password is correct create a token
+	if (checkPassword) {
+		const token = jwt.sign({ id: check._id }, process.env.SECRET_KEY);
+
+		response.header('x-auth-token', token).send({ token: token, id: check._id });
+	} else {
+		response.status(401).send('Email/Password incorrect');
+		return;
+	}
+});
+
+// To create new doctor by admin
+router.post('/create-doctor', admin_auth, async (request, response) => {
+	const { name, dept, about, contact, email, password, timeslot } = request.body;
+
+	const check = await client
+		.db('healthcare')
+		.collection('doctor')
+		.findOne({ email: email }, { projection: { _id: 1, email: 1 } });
+
+	if (check) {
+		response.status(401).send('Doctor email already registered');
+		return;
+	}
+
+	// If new user hashing the password here
+	const hashedPassword = await genPassword(password);
+
+	const result = await createDoctor({
+		name: name,
+		dept: dept,
+		about: about,
+		contact: contact,
+		email: email,
+		password: hashedPassword,
+		timeslot: timeslot,
+	});
+
+	response.send(result);
+});
+
+// To create admin
+router.post('/create-admin', async (request, response) => {
+	const { email, password } = request.body;
+
+	const check = await client
+		.db('healthcare')
+		.collection('admin')
+		.findOne({ email: email }, { projection: { _id: 1, email: 1 } });
+
+	if (check) {
+		response.status(401).send('Admin email already registered');
+		return;
+	}
+
+	// If new user hashing the password here
+	const hashedPassword = await genPassword(password);
+
+	const result = await createAdmin({
+		email: email,
+		password: hashedPassword,
+	});
 
 	response.send(result);
 });
@@ -69,6 +179,7 @@ router.put('/update-appointment-summary/:id', async (request, response) => {
 
 	if (setPatientSummary.modifiedCount !== 1) {
 		response.send('Error Occured');
+		return;
 	}
 	const result = await updateAppointmentsSummary(id, data);
 	response.send(result);
@@ -83,6 +194,7 @@ router.put('/update-appointment-prescription/:id', async (request, response) => 
 
 	if (setPatientPrescription.modifiedCount !== 1) {
 		response.send('Error Occured');
+		return;
 	}
 	const result = await updateAppointmentsPrescription(id, data);
 	response.send(result);

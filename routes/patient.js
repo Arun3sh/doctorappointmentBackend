@@ -11,13 +11,49 @@ import {
 	updateAppointmentPrescription,
 	getPatientSummary,
 	getPatientPrescription,
+	genPassword,
 } from './../helper.js';
 import { createNewAppointment } from './../doctor_helper.js';
+import { client } from '../index.js';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import { auth } from './auth.js';
 
 const router = express.Router();
 
 router.get('/', (request, response) => {
 	response.send('Patient get');
+});
+
+// For user login
+router.post('/login-patient', async (request, response) => {
+	const { email, password } = request.body;
+
+	// To check if user exists
+	const check = await client
+		.db('healthcare')
+		.collection('patient')
+		.findOne({ email: email }, { projection: { _id: 1, pt_name: 1, email: 1, password: 1 } });
+
+	if (check === null) {
+		response.status(401).send('Email / Password incorrect');
+		return;
+	}
+
+	// To check the hashed password
+	const checkPassword = await bcrypt.compare(password, check.password);
+
+	// If password is correct create a token
+	if (checkPassword) {
+		const token = jwt.sign({ id: check._id }, process.env.SECRET_KEY);
+
+		response
+			.header('x-auth-token', token)
+			.send({ token: token, id: check._id, pt_name: check.pt_name });
+	} else {
+		response.status(401).send('Email/Password incorrect');
+		return;
+	}
 });
 
 // To get patient based on id
@@ -44,29 +80,49 @@ router.get('/getdetails/:id', async (request, response) => {
 
 // To create new patient
 router.post('/new-patient', async (request, response) => {
-	const data = request.body;
-	const createPatient = await createNewPatient(data);
+	const { pt_name, email, contact, password } = request.body;
+
+	// To check if user already exists
+	const check = await client
+		.db('healthcare')
+		.collection('patient')
+		.findOne({ email: email }, { projection: { _id: 1, email: 1 } });
+
+	if (check) {
+		response.status(401).send('User email already registered');
+		return;
+	}
+
+	// If new user hashing the password here
+	const hashedPassword = await genPassword(password);
+	const createPatient = await createNewPatient({
+		pt_name: pt_name,
+		password: hashedPassword,
+		email: email,
+		contact: contact,
+	});
 	response.send(createPatient);
 });
 
 // To create a new appointment
-router.put('/create-new-appointment/:id', async (request, response) => {
+router.put('/create-new-appointment/:id', auth, async (request, response) => {
 	const data = request.body;
 	const { id } = request.params;
 	const docData = {
 		pt_id: id,
-		pt_name: 'User',
-		pt_reason: 'Fever',
-		date: '2022-04-13',
-		timeslot: '10',
-		status: 'pending',
-		discharge_summary: '',
-		prescription: '',
+		pt_name: data.pt_name,
+		pt_reason: data.pt_reason,
+		date: data.date,
+		timeslot: data.timeslot,
+		status: data.status,
+		discharge_summary: data.discharge_summary,
+		prescription: data.prescription,
 	};
 	const createDocApp = await createNewAppointment(data.doc_id, docData);
 
 	if (createDocApp.modifiedCount !== 1) {
 		response.send('Error Occured');
+		return;
 	}
 	const updatePt = await createAppointment(id, data);
 
