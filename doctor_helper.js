@@ -33,6 +33,10 @@ async function createDoctor(data) {
 	return await client.db('healthcare').collection('doctor').insertOne(data);
 }
 
+async function createAdmin(data) {
+	return await client.db('healthcare').collection('admin').insertOne(data);
+}
+
 async function createNewAppointment(id, data) {
 	return await client
 		.db('healthcare')
@@ -87,6 +91,7 @@ export {
 	getAllDoctor,
 	getAppointments,
 	createDoctor,
+	createAdmin,
 	createNewAppointment,
 	updateAppointmentsStatus,
 	updateAppointmentsSummary,

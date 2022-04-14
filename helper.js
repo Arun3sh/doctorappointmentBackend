@@ -1,5 +1,6 @@
 import { client } from './index.js';
 import { ObjectId } from 'mongodb';
+import bcrypt from 'bcrypt';
 
 async function getPatientData(id) {
 	return await client
@@ -148,6 +149,14 @@ async function getPatientPrescription(id, data) {
 		.toArray();
 }
 
+async function genPassword(password) {
+	const salt = await bcrypt.genSalt(10);
+
+	const hashedPassword = await bcrypt.hash(password, salt);
+
+	return hashedPassword;
+}
+
 export {
 	getPatientData,
 	getAppointment,
@@ -160,4 +169,5 @@ export {
 	updateAppointmentPrescription,
 	getPatientSummary,
 	getPatientPrescription,
+	genPassword,
 };
