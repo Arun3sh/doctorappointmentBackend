@@ -87,7 +87,7 @@ router.post('/login-admin', async (request, response) => {
 	if (checkPassword) {
 		const token = jwt.sign({ id: check._id }, process.env.ADMIN_SECRET_KEY);
 
-		response.header('x-auth-token', token).send({ token: token, id: check._id });
+		response.header('x-adminauth-token', token).send({ token: token, id: check._id });
 	} else {
 		response.status(401).send('Email/Password incorrect');
 		return;
