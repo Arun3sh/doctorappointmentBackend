@@ -85,7 +85,7 @@ router.post('/login-admin', async (request, response) => {
 
 	// If password is correct create a token
 	if (checkPassword) {
-		const token = jwt.sign({ id: check._id }, process.env.SECRET_KEY);
+		const token = jwt.sign({ id: check._id }, process.env.ADMIN_SECRET_KEY);
 
 		response.header('x-auth-token', token).send({ token: token, id: check._id });
 	} else {
