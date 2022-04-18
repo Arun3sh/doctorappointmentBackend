@@ -20,6 +20,7 @@ import jwt from 'jsonwebtoken';
 import { client } from '../index.js';
 import { admin_auth } from './admin_auth.js';
 import { auth } from './auth.js';
+import { ObjectId } from 'mongodb';
 
 const router = express.Router();
 
@@ -122,6 +123,15 @@ router.post('/create-doctor', admin_auth, async (request, response) => {
 	});
 
 	response.send(result);
+});
+
+router.delete('/delete-doctor/:id', admin_auth, async (request, response) => {
+	const { id } = request.params;
+	const deleteDoc = await client
+		.db('healthcare')
+		.collection('doctor')
+		.deleteOne({ _id: ObjectId(id) });
+	response.send(deleteDoc);
 });
 
 // To create admin
